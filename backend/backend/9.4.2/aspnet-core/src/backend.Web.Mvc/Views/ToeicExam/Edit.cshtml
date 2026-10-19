@@ -1,0 +1,181 @@
+@using backend.Toeic
+@using backend.Toeic.Dto
+@model ExamDetailDto
+@{
+    ViewBag.Title = "Chỉnh sửa Đề thi: " + Model.Title;
+    ViewBag.CurrentPageName = "ToeicExam";
+}
+
+<section class="content-header sticky-top bg-white border-bottom shadow-sm py-2">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="mb-0 text-primary font-weight-bold">
+                    <i class="fas fa-edit mr-2"></i> Chỉnh sửa Đề thi
+                </h4>
+            </div>
+            <div class="col-md-6 text-right">
+                <button type="button" class="btn btn-success" onclick="$('#form-edit-exam').submit();">
+                    <i class="fas fa-save mr-1"></i> Lưu thay đổi
+                </button>
+                <a asp-action="Preview" asp-route-id="@Model.Id" class="btn btn-secondary">
+                    <i class="fas fa-times mr-1"></i> Hủy bỏ
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content mt-3">
+    <div class="container-fluid">
+        <form asp-action="Edit" method="post" id="form-edit-exam">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="TotalQuestions" />
+            <input type="hidden" asp-for="IsPublished" />
+
+            <div class="card card-primary card-outline shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title font-weight-bold">Thông tin chung về đề thi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label asp-for="Title" class="font-weight-bold">Tên đề thi:</label>
+                                <input asp-for="Title" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="DurationMinutes" class="font-weight-bold">Thời gian làm bài (phút):</label>
+                                <input asp-for="DurationMinutes" type="number" class="form-control" min="1" max="180" required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label asp-for="Description" class="font-weight-bold">Mô tả / Hướng dẫn đề thi:</label>
+                        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            @for (int gIdx = 0; gIdx < Model.QuestionGroups.Count; gIdx++)
+            {
+                var group = Model.QuestionGroups[gIdx];
+                <input type="hidden" asp-for="QuestionGroups[gIdx].Id" />
+                <input type="hidden" asp-for="QuestionGroups[gIdx].ExamId" />
+                <input type="hidden" asp-for="QuestionGroups[gIdx].PartType" />
+                <input type="hidden" asp-for="QuestionGroups[gIdx].OrderIndex" />
+
+                <div class="card card-secondary card-outline shadow-sm mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h6 class="font-weight-bold mb-0 text-primary">
+                            <i class="fas fa-layer-group mr-1"></i> PART @((int)group.PartType) - Nhóm @(gIdx + 1)
+                        </h6>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" asp-for="QuestionGroups[gIdx].AllowShuffleQuestions" id="shuffleQ_@gIdx" />
+                            <label class="custom-control-label small" for="shuffleQ_@gIdx">Cho phép hoán vị câu hỏi trong nhóm</label>
+                        </div>
+                    </div>
+
+                    @if (group.PartType == ToeicPartType.Part6 || group.PartType == ToeicPartType.Part7)
+                    {
+                        <div class="card-body bg-light border-bottom">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Nội dung đoạn văn bài đọc (Passage):</label>
+                                <textarea asp-for="QuestionGroups[gIdx].PassageText" class="form-control" rows="6" style="font-family: Georgia, serif;"></textarea>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="font-weight-bold">Đường dẫn hình ảnh (Phân cách bằng dấu chấm phẩy nếu có nhiều ảnh):</label>
+                                <input asp-for="QuestionGroups[gIdx].PassageImages" class="form-control" placeholder="/uploads/toeic/hinh1.png; /uploads/toeic/hinh2.png" />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="card-body">
+                        @for (int qIdx = 0; qIdx < group.Questions.Count; qIdx++)
+                        {
+                            var q = group.Questions[qIdx];
+                            <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].Id" />
+                            <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].QuestionGroupId" />
+                            <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].QuestionNumber" />
+                            <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].OrderIndex" />
+
+                            <div class="p-3 mb-3 border rounded bg-white shadow-xs">
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-2">
+                                        <span class="badge badge-primary px-2 py-1 font-weight-bold" style="font-size: 1rem;">
+                                            Câu @q.QuestionNumber
+                                        </span>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <input asp-for="QuestionGroups[gIdx].Questions[qIdx].Content" class="form-control form-control-sm font-weight-bold" placeholder="Nội dung câu hỏi..." />
+                                    </div>
+                                    <div class="col-md-3 text-right">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" asp-for="QuestionGroups[gIdx].Questions[qIdx].AllowShuffleAnswers" id="shuffleA_@(gIdx)_@(qIdx)" />
+                                            <label class="custom-control-label small" for="shuffleA_@(gIdx)_@(qIdx)">Hoán vị đáp án</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row pl-2">
+                                    @for (int oIdx = 0; oIdx < q.AnswerOptions.Count; oIdx++)
+                                    {
+                                        var opt = q.AnswerOptions[oIdx];
+                                        <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].Id" />
+                                        <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].QuestionId" />
+                                        <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].Label" />
+                                        <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].OrderIndex" />
+
+                                        <div class="col-md-6 mb-2">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text font-weight-bold">@opt.Label</span>
+                                                    <div class="input-group-text bg-white">
+                                                        <input type="radio" name="correct_radio_@(gIdx)_@(qIdx)" class="correct-radio" 
+                                                               data-target-hidden="#hidden_correct_@(gIdx)_@(qIdx)_@(oIdx)" 
+                                                               data-group-class="group_correct_@(gIdx)_@(qIdx)"
+                                                               @(opt.IsCorrect == true ? "checked" : "") title="Chọn làm đáp án đúng" />
+                                                    </div>
+                                                </div>
+                                                <input asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].Content" class="form-control" placeholder="Nội dung đáp án @opt.Label..." required />
+                                                <input type="hidden" asp-for="QuestionGroups[gIdx].Questions[qIdx].AnswerOptions[oIdx].IsCorrect" id="hidden_correct_@(gIdx)_@(qIdx)_@(oIdx)" class="group_correct_@(gIdx)_@(qIdx)" />
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="mt-2">
+                                    <input asp-for="QuestionGroups[gIdx].Questions[qIdx].Explanation" class="form-control form-control-sm text-info" placeholder="Gợi ý / Giải thích câu trả lời..." />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="text-right pb-5">
+                <button type="submit" class="btn btn-success btn-lg px-4 shadow">
+                    <i class="fas fa-save mr-1"></i> Lưu toàn bộ thay đổi
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        $(function () {
+            // Radio button syncs with hidden IsCorrect fields
+            $('.correct-radio').on('change', function () {
+                var targetHidden = $(this).data('target-hidden');
+                var groupClass = $(this).data('group-class');
+
+                $('.' + groupClass).val('false');
+                $(targetHidden).val('true');
+            });
+        });
+    </script>
+}

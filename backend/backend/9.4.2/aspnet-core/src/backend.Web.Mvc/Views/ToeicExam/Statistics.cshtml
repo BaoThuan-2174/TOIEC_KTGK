@@ -1,0 +1,146 @@
+@using backend.Toeic.Dto
+@model ExamStatisticsDto
+@{
+    ViewBag.Title = "Thống kê kết quả thi: " + Model.ExamTitle;
+    ViewBag.CurrentPageName = "ToeicExam";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-8">
+                <h4 class="mb-0 text-primary font-weight-bold">
+                    <i class="fas fa-chart-line mr-2"></i> Báo cáo Thống kê & Phân tích Đề thi: @Model.ExamTitle
+                </h4>
+            </div>
+            <div class="col-sm-4 text-right">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <!-- KPI Cards -->
+        <div class="row">
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-info shadow-sm">
+                    <div class="inner">
+                        <h3>@Model.TotalSubmissions</h3>
+                        <p>Tổng số lượt làm bài</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-success shadow-sm">
+                    <div class="inner">
+                        <h3>@Model.AverageScore <sup style="font-size: 20px">/ 495</sup></h3>
+                        <p>Điểm trung bình</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-warning shadow-sm">
+                    <div class="inner">
+                        <h3>@Model.HighestScore <sup style="font-size: 20px">/ 495</sup></h3>
+                        <p>Điểm cao nhất</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-danger shadow-sm">
+                    <div class="inner">
+                        <h3>@Model.LowestScore <sup style="font-size: 20px">/ 495</sup></h3>
+                        <p>Điểm thấp nhất</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 10 Most Wrong Questions -->
+        <div class="card card-outline card-danger shadow-sm mt-3">
+            <div class="card-header">
+                <h5 class="card-title font-weight-bold text-danger">
+                    <i class="fas fa-fire mr-1"></i> Top 10 Câu hỏi nhiều Sinh viên làm sai nhất
+                </h5>
+                <div class="card-tools">
+                    <span class="badge badge-danger p-2">Phân tích chuyên sâu</span>
+                </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 50px">Top</th>
+                            <th style="width: 80px" class="text-center">Số câu</th>
+                            <th style="width: 80px" class="text-center">Part</th>
+                            <th>Nội dung câu hỏi</th>
+                            <th style="width: 130px" class="text-center">Số lượt làm sai</th>
+                            <th style="width: 150px" class="text-center">Tỉ lệ sai (%)</th>
+                            <th>Gợi ý / Giải thích lỗi sai</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TopWrongQuestions == null || Model.TopWrongQuestions.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                    Chưa có dữ liệu bài nộp làm sai nào cho đề thi này.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int rank = 1;
+                            foreach (var item in Model.TopWrongQuestions)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge @(rank == 1 ? "badge-danger" : rank <= 3 ? "badge-warning" : "badge-secondary") font-weight-bold px-2 py-1">
+                                            #@rank
+                                        </span>
+                                    </td>
+                                    <td class="text-center font-weight-bold">Câu @item.QuestionNumber</td>
+                                    <td class="text-center"><span class="badge badge-light border">Part @item.PartNumber</span></td>
+                                    <td><strong>@item.QuestionContent</strong></td>
+                                    <td class="text-center text-danger font-weight-bold">@item.WrongCount / @item.TotalAttempts</td>
+                                    <td class="text-center">
+                                        <div class="progress progress-sm mb-1">
+                                            <div class="progress-bar bg-danger" style="width: @item.WrongPercentage%"></div>
+                                        </div>
+                                        <span class="badge badge-pill badge-danger">@item.WrongPercentage%</span>
+                                    </td>
+                                    <td>
+                                        <div class="small text-info">
+                                            <i class="fas fa-lightbulb text-warning mr-1"></i> @(string.IsNullOrEmpty(item.Explanation) ? "Chưa có giải thích" : item.Explanation)
+                                        </div>
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

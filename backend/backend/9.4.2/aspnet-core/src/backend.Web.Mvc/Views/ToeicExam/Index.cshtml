@@ -1,0 +1,147 @@
+@using backend.Toeic.Dto
+@model IReadOnlyList<ExamListDto>
+@{
+    ViewBag.Title = "Danh sách Đề thi TOEIC Reading";
+    ViewBag.CurrentPageName = "ToeicExam";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-book-reader text-primary mr-2"></i> Quản lý Đề thi TOEIC Reading</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a asp-action="Upload" class="btn btn-primary">
+                    <i class="fas fa-file-upload mr-1"></i> Import đề thi từ file Word (.docx)
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <div class="card card-outline card-primary shadow-sm">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold">Danh sách đề thi trong hệ thống</h3>
+                <div class="card-tools">
+                    <span class="badge badge-info p-2">Tổng số đề: @Model.Count</span>
+                </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-striped text-nowrap">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 50px">#</th>
+                            <th>Tên đề thi</th>
+                            <th class="text-center">Số câu hỏi</th>
+                            <th class="text-center">Thời gian</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Số lượt thi</th>
+                            <th class="text-center">Điểm TB</th>
+                            <th class="text-center" style="width: 250px">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-folder-open fa-3x mb-3 d-block text-secondary"></i>
+                                    Chưa có đề thi nào trong hệ thống. <br />
+                                    Hãy bấm nút <strong>"Import đề thi từ file Word (.docx)"</strong> ở trên để tải đề đầu tiên!
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int idx = 1;
+                            foreach (var exam in Model)
+                            {
+                                <tr>
+                                    <td>@(idx++)</td>
+                                    <td>
+                                        <strong>@exam.Title</strong>
+                                        <div class="small text-muted">Tạo lúc: @exam.CreationTime.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </td>
+                                    <td class="text-center"><span class="badge badge-secondary p-1">@exam.TotalQuestions câu</span></td>
+                                    <td class="text-center">@exam.DurationMinutes phút</td>
+                                    <td class="text-center">
+                                        <div class="custom-control custom-switch d-inline-block">
+                                            <input type="checkbox" class="custom-control-input publish-switch" id="switch-@exam.Id" data-id="@exam.Id" @(exam.IsPublished ? "checked" : "") />
+                                            <label class="custom-control-label" for="switch-@exam.Id">
+                                                <span class="badge @(exam.IsPublished ? "badge-success" : "badge-warning")" id="badge-@exam.Id">
+                                                    @(exam.IsPublished ? "Đã xuất bản" : "Bản nháp")
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="text-center font-weight-bold">@exam.SubmissionCount</td>
+                                    <td class="text-center text-primary font-weight-bold">@(exam.SubmissionCount > 0 ? exam.AverageScore.ToString() : "--")</td>
+                                    <td class="text-center">
+                                        <a asp-action="Preview" asp-route-id="@exam.Id" class="btn btn-sm btn-info" title="Xem trước và rà soát">
+                                            <i class="fas fa-eye"></i> Xem trước
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@exam.Id" class="btn btn-sm btn-warning" title="Chỉnh sửa nội dung đề">
+                                            <i class="fas fa-edit"></i> Sửa
+                                        </a>
+                                        <a asp-action="Statistics" asp-route-id="@exam.Id" class="btn btn-sm btn-primary" title="Thống kê làm bài và Top câu sai">
+                                            <i class="fas fa-chart-bar"></i> Thống kê
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@exam.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xoá đề thi này?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Xoá đề">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        $(function () {
+            $('.publish-switch').on('change', function () {
+                var $switch = $(this);
+                var examId = $switch.data('id');
+                var isPublished = $switch.is(':checked');
+                var $badge = $('#badge-' + examId);
+
+                $.ajax({
+                    url: '@Url.Action("Publish", "ToeicExam")',
+                    type: 'POST',
+                    data: { id: examId, isPublished: isPublished },
+                    success: function (res) {
+                        if (res.isPublished) {
+                            $badge.removeClass('badge-warning').addClass('badge-success').text('Đã xuất bản');
+                            abp.notify.success('Đã kích hoạt ca thi! Thí sinh trên Mobile app hiện đã có thể làm bài.');
+                        } else {
+                            $badge.removeClass('badge-success').addClass('badge-warning').text('Bản nháp');
+                            abp.notify.info('Đã chuyển về bản nháp. Thí sinh sẽ không thấy đề thi này.');
+                        }
+                    },
+                    error: function () {
+                        $switch.prop('checked', !isPublished);
+                        abp.notify.error('Có lỗi xảy ra khi cập nhật trạng thái xuất bản.');
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,190 @@
+@{
+    ViewBag.Title = "Import Đề thi TOEIC từ file Word (.docx)";
+    ViewBag.CurrentPageName = "ToeicUpload";
+    var errors = ViewBag.Errors as List<string>;
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-file-upload text-primary mr-2"></i> Import Đề thi TOEIC từ file Word</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a asp-action="DownloadSampleWord" class="btn btn-outline-success mr-2">
+                    <i class="fas fa-file-download mr-1"></i> Tải file Word mẫu chuẩn (.docx)
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Quay lại danh sách đề thi
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        @if (ViewBag.ErrorMessage != null)
+        {
+            <div class="alert alert-danger shadow-sm">
+                <h5><i class="icon fas fa-ban mr-1"></i> Không thể Import đề thi!</h5>
+                @ViewBag.ErrorMessage
+                @if (errors != null && errors.Count > 0)
+                {
+                    <hr />
+                    <strong>Danh sách các lỗi cần sửa trong file Word:</strong>
+                    <ul class="mb-0 mt-2 pl-3">
+                        @foreach (var err in errors)
+                        {
+                            <li><code>@err</code></li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card card-primary card-outline shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">
+                            <i class="fas fa-cloud-upload-alt mr-1"></i> Tải lên file .docx
+                        </h3>
+                    </div>
+                    <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <div class="card-body">
+                            <p class="text-muted">
+                                Hệ thống sẽ tiến hành đọc và kiểm tra tính toàn vẹn 100% của file Word.
+                                Nếu phát hiện bất kỳ lỗi nào (thiếu tag, thiếu đáp án, sai thứ tự câu...), hệ thống sẽ <strong>huỷ bỏ toàn bộ, không lưu vào CSDL</strong> và thông báo cụ thể dòng bị lỗi.
+                            </p>
+
+                            <div class="form-group mt-4">
+                                <label for="docxFile" class="font-weight-bold">Chọn file Word đề thi (.docx):</label>
+                                <div class="custom-file">
+                                    <input type="file" name="docxFile" id="docxFile" class="custom-file-input" accept=".docx" required />
+                                    <label class="custom-file-label" for="docxFile" id="file-label">Chọn file đề thi .docx...</label>
+                                </div>
+                                <small class="form-text text-muted">Chỉ hỗ trợ file chuẩn Word 2007+ (.docx).</small>
+                            </div>
+
+                            <div class="callout callout-info mt-3">
+                                <h6><i class="fas fa-info-circle text-info"></i> Lưu ý về Hình ảnh:</h6>
+                                <p class="small mb-0">
+                                    Đối với Part 6 & Part 7, bạn có thể <strong>chèn ảnh trực tiếp vào file Word</strong> hoặc sử dụng tag <code>[IMAGE: ten_file.png]</code> hoặc đường dẫn link ảnh. Trình bóc tách sẽ tự động trích xuất các hình ảnh nhúng trong file docx và lưu vào hệ thống!
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light text-right">
+                            <button type="submit" class="btn btn-primary btn-lg px-4" id="btn-submit">
+                                <i class="fas fa-upload mr-1"></i> Bắt đầu Đọc file & Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card card-info card-outline shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">
+                            <i class="fas fa-tags mr-1"></i> Quy ước Bộ Thẻ (Tags) Chuẩn trong File Word
+                        </h3>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 520px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width: 35%">Thẻ Tag</th>
+                                    <th>Mô tả & Ví dụ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>[EXAM_TITLE: ...]</code></td>
+                                    <td>Tiêu đề đề thi (VD: <code>[EXAM_TITLE: Đề thi TOEIC Reading số 01]</code>)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[EXAM_DURATION: ...]</code></td>
+                                    <td>Thời gian làm bài phút (Mặc định: <code>[EXAM_DURATION: 75]</code>)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[PART: 5 / 6 / 7]</code></td>
+                                    <td>Khai báo bắt đầu phần thi Part 5, Part 6 hoặc Part 7.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[SHUFFLE_QUESTIONS: TRUE/FALSE]</code></td>
+                                    <td>Tag cho phép / không cho phép hoán vị thứ tự câu hỏi khi thi.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[SHUFFLE_ANSWERS: TRUE/FALSE]</code></td>
+                                    <td>Tag cho phép / không cho phép hoán vị các lựa chọn đáp án.</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <code>[GROUP_START]</code><br />
+                                        <code>[PASSAGE_START]</code><br />
+                                        <code>[PASSAGE_END]</code><br />
+                                        <code>[GROUP_END]</code>
+                                    </td>
+                                    <td>
+                                        Dành cho Part 6 & 7: Bao quanh đoạn văn và các câu hỏi phụ thuộc đi kèm.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><code>[IMAGE: ...]</code></td>
+                                    <td>Tên ảnh hoặc link ảnh trong bài đọc (Hoặc chèn trực tiếp ảnh trong Word).</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[Q: 101] Nội dung</code></td>
+                                    <td>Bắt đầu một câu hỏi kèm số thứ tự (từ 101 đến 200).</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <code>[A] ...</code><br />
+                                        <code>[B] ...</code><br />
+                                        <code>[C] ...</code><br />
+                                        <code>[D] ...</code>
+                                    </td>
+                                    <td>Bắt buộc phải có đủ 4 lựa chọn đáp án cho mỗi câu.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[KEY: A]</code></td>
+                                    <td>Chỉ định đáp án đúng (A, B, C hoặc D).</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[EXPLAIN: ...]</code></td>
+                                    <td>Giải thích đáp án hoặc gợi ý giải chi tiết cho câu hỏi.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        $(function () {
+            $('#docxFile').on('change', function () {
+                var fileName = $(this).val().split('\\').pop();
+                if (fileName) {
+                    $('#file-label').text(fileName);
+                } else {
+                    $('#file-label').text('Chọn file đề thi .docx...');
+                }
+            });
+
+            $('form').on('submit', function () {
+                var file = $('#docxFile').val();
+                if (!file) {
+                    alert('Vui lòng chọn file .docx trước khi bấm Import!');
+                    return false;
+                }
+                $('#btn-submit').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang đọc và kiểm tra file...');
+            });
+        });
+    </script>
+}

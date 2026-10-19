@@ -1,0 +1,218 @@
+@using backend.Toeic
+@using backend.Toeic.Dto
+@model ExamDetailDto
+@{
+    ViewBag.Title = "Xem trước Đề thi: " + Model.Title;
+    ViewBag.CurrentPageName = "ToeicExam";
+}
+
+<section class="content-header sticky-top bg-white border-bottom shadow-sm py-2">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <h4 class="mb-1 text-primary font-weight-bold">
+                    <i class="fas fa-file-alt mr-2"></i> @Model.Title
+                </h4>
+                <div class="text-muted small">
+                    <span class="mr-3"><i class="fas fa-question-circle mr-1"></i> <strong>@Model.TotalQuestions</strong> câu hỏi</span>
+                    <span class="mr-3"><i class="fas fa-clock mr-1"></i> <strong>@Model.DurationMinutes</strong> phút</span>
+                    <span>
+                        Trạng thái: 
+                        <span class="badge @(Model.IsPublished ? "badge-success" : "badge-warning")" id="header-badge">
+                            @(Model.IsPublished ? "Đã xuất bản (Sinh viên có thể thi)" : "Bản nháp (Chưa cho phép thi)")
+                        </span>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-5 text-right">
+                <button type="button" class="btn @(Model.IsPublished ? "btn-warning" : "btn-success") mr-1" id="btn-toggle-publish" data-published="@(Model.IsPublished ? "true" : "false")">
+                    <i class="fas @(Model.IsPublished ? "fa-eye-slash" : "fa-bullhorn") mr-1"></i>
+                    <span id="btn-publish-text">@(Model.IsPublished ? "Hủy xuất bản" : "Xuất bản ca thi ngay")</span>
+                </button>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary mr-1">
+                    <i class="fas fa-edit mr-1"></i> Chỉnh sửa
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content mt-3">
+    <div class="container-fluid">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <div class="row">
+            <!-- Main Content: Groups and Questions -->
+            <div class="col-lg-9">
+                @if (Model.QuestionGroups == null || Model.QuestionGroups.Count == 0)
+                {
+                    <div class="card card-body text-center py-5 text-muted">
+                        Chưa có câu hỏi nào trong đề thi.
+                    </div>
+                }
+                else
+                {
+                    int currentPartNumber = -1;
+                    foreach (var group in Model.QuestionGroups)
+                    {
+                        if ((int)group.PartType != currentPartNumber)
+                        {
+                            currentPartNumber = (int)group.PartType;
+                            <div class="alert alert-dark shadow-sm mt-4 mb-3 d-flex justify-content-between align-items-center" id="part-@currentPartNumber">
+                                <h5 class="mb-0 font-weight-bold text-uppercase">
+                                    <i class="fas fa-layer-group mr-2"></i> PART @currentPartNumber : 
+                                    @(currentPartNumber == 5 ? "Incomplete Sentences (Câu đơn)" : currentPartNumber == 6 ? "Text Completion (Điền đoạn văn)" : "Reading Comprehension (Đọc hiểu văn bản)")
+                                </h5>
+                                <span class="badge badge-light">
+                                    @(group.AllowShuffleQuestions ? "Hoán vị câu hỏi: BẬT" : "Hoán vị câu hỏi: TẮT")
+                                </span>
+                            </div>
+                        }
+
+                        <div class="card card-outline card-secondary mb-4 shadow-sm">
+                            @if (!string.IsNullOrWhiteSpace(group.PassageText) || !string.IsNullOrWhiteSpace(group.PassageImages))
+                            {
+                                <div class="card-header bg-light border-bottom">
+                                    <h6 class="font-weight-bold text-secondary mb-2">
+                                        <i class="fas fa-align-left mr-1"></i> Đoạn văn bài đọc (Part @((int)group.PartType)):
+                                    </h6>
+                                    
+                                    @if (!string.IsNullOrWhiteSpace(group.PassageImages))
+                                    {
+                                        <div class="mb-3 text-center">
+                                            @foreach (var imgUrl in group.PassageImages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                                            {
+                                                <div class="d-inline-block border p-1 rounded bg-white shadow-sm m-1">
+                                                    <img src="@imgUrl" class="img-fluid rounded" style="max-height: 400px;" alt="Hình ảnh bài đọc" />
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(group.PassageText))
+                                    {
+                                        <div class="p-3 bg-white rounded border" style="font-family: Georgia, serif; font-size: 1.05rem; line-height: 1.8; white-space: pre-wrap;">@group.PassageText</div>
+                                    }
+                                </div>
+                            }
+
+                            <div class="card-body">
+                                @foreach (var q in group.Questions)
+                                {
+                                    <div class="mb-4 pb-3 border-bottom" id="q-@q.QuestionNumber">
+                                        <div class="d-flex align-items-start mb-2">
+                                            <span class="badge badge-primary px-2 py-1 mr-2" style="font-size: 0.95rem;">
+                                                Câu @q.QuestionNumber
+                                            </span>
+                                            <div class="font-weight-bold" style="font-size: 1.05rem;">
+                                                @q.Content
+                                            </div>
+                                        </div>
+
+                                        <div class="row pl-4 mt-2">
+                                            @foreach (var opt in q.AnswerOptions)
+                                            {
+                                                <div class="col-md-6 mb-2">
+                                                    <div class="p-2 rounded border @(opt.IsCorrect == true ? "border-success bg-light text-success font-weight-bold" : "bg-white")">
+                                                        <span class="badge @(opt.IsCorrect == true ? "badge-success" : "badge-secondary") mr-2">
+                                                            @opt.Label
+                                                        </span>
+                                                        @opt.Content
+                                                        @if (opt.IsCorrect == true)
+                                                        {
+                                                            <span class="badge badge-success float-right"><i class="fas fa-check mr-1"></i> Đáp án đúng</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(q.Explanation))
+                                        {
+                                            <div class="alert alert-info mt-2 ml-4 py-2 px-3 small mb-0">
+                                                <strong><i class="fas fa-lightbulb text-warning mr-1"></i> Gợi ý / Lời giải chi tiết:</strong> @q.Explanation
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Sidebar: Jump Navigation Palette -->
+            <div class="col-lg-3">
+                <div class="card card-outline card-primary shadow-sm sticky-top" style="top: 70px;">
+                    <div class="card-header">
+                        <h6 class="card-title font-weight-bold mb-0">
+                            <i class="fas fa-th mr-1"></i> Bảng điều hướng câu hỏi
+                        </h6>
+                    </div>
+                    <div class="card-body p-2" style="max-height: 480px; overflow-y: auto;">
+                        <div class="d-flex flex-wrap">
+                            @foreach (var g in Model.QuestionGroups)
+                            {
+                                foreach (var q in g.Questions)
+                                {
+                                    <a href="#q-@q.QuestionNumber" class="btn btn-outline-secondary btn-sm m-1" style="width: 44px; height: 35px; line-height: 22px; font-size: 0.8rem;">
+                                        @q.QuestionNumber
+                                    </a>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center small text-muted">
+                        Bấm vào số câu để cuộn nhanh đến câu đó và rà soát lỗi.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        $(function () {
+            $('#btn-toggle-publish').on('click', function () {
+                var $btn = $(this);
+                var isPublished = $btn.data('published') === true || $btn.data('published') === 'true';
+                var nextState = !isPublished;
+
+                $.ajax({
+                    url: '@Url.Action("Publish", "ToeicExam")',
+                    type: 'POST',
+                    data: { id: @Model.Id, isPublished: nextState },
+                    success: function (res) {
+                        $btn.data('published', nextState);
+                        if (nextState) {
+                            $btn.removeClass('btn-success').addClass('btn-warning');
+                            $('#btn-publish-text').text('Hủy xuất bản');
+                            $btn.find('i').removeClass('fa-bullhorn').addClass('fa-eye-slash');
+                            $('#header-badge').removeClass('badge-warning').addClass('badge-success').text('Đã xuất bản (Sinh viên có thể thi)');
+                            abp.notify.success('Đã xuất bản đề thi thành công! Sinh viên trên Mobile đã có thể tham gia thi.');
+                        } else {
+                            $btn.removeClass('btn-warning').addClass('btn-success');
+                            $('#btn-publish-text').text('Xuất bản ca thi ngay');
+                            $btn.find('i').removeClass('fa-eye-slash').addClass('fa-bullhorn');
+                            $('#header-badge').removeClass('badge-success').addClass('badge-warning').text('Bản nháp (Chưa cho phép thi)');
+                            abp.notify.info('Đã hủy xuất bản đề thi.');
+                        }
+                    },
+                    error: function () {
+                        abp.notify.error('Lỗi khi thay đổi trạng thái xuất bản.');
+                    }
+                });
+            });
+        });
+    </script>
+}
